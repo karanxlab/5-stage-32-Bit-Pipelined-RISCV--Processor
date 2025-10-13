@@ -1,0 +1,43 @@
+CC       = riscv64-unknown-elf-gcc
+OBJDUMP  = riscv64-unknown-elf-objdump
+
+ARCH_FLAGS = -march=rv32im -mabi=ilp32
+CFLAGS     = $(ARCH_FLAGS) -O2 -c
+LDFLAGS    = -T link.ld $(ARCH_FLAGS) -nostdlib -nostartfiles -nodefaultlibs
+
+C_SRC   = tst.c
+ASM_SRC = crt0.S
+OBJ     = $(C_SRC:.c=.o) $(ASM_SRC:.S=.o)
+
+ELF     = tst.elf
+DISASM  = disasm.txt
+HEX     = instr_mem.hex
+
+.PHONY: all run clean
+
+all: $(DISASM) $(HEX)
+	@echo "✅ Build complete: $(HEX) generated."
+
+$(ELF): $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^
+
+$(DISASM): $(ELF)
+	$(OBJDUMP) -d -S $< > $@
+
+$(HEX): $(DISASM)
+	awk '{print $$2}' $< | grep -E '^[0-9a-f]+$$' > $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+%.o: %.S
+	$(CC) $(ARCH_FLAGS) -c -o $@ $<
+
+run: all
+	iverilog -o sim.out *.v
+	vvp sim.out
+
+clean:
+	rm -f $(OBJ) $(ELF) $(DISASM) $(HEX) sim.out
+	@echo "🧹 Cleaned all generated files."
+
