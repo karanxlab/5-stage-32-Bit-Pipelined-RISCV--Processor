@@ -1,3 +1,2 @@
-# RISC-V-CPU-Core-Project-Using-Verilog
+# RISC V Processor System Design
 
-This project is to design a RISC-V core using Verilog in ModelSim , implementing the core components and concepts of RISC-V .
