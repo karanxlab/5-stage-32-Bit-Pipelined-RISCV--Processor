@@ -6,6 +6,7 @@ module if_id(
     output reg [31:0] pc_out,
     output reg [31:0] instr_out
 );
+
     always @(posedge clk or posedge reset) begin
         if (reset || flush) begin
             pc_out <= 0;
@@ -15,4 +16,5 @@ module if_id(
             instr_out <= instr_in;
         end
     end
+
 endmodule
