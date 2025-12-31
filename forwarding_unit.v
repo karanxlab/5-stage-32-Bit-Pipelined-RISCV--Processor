@@ -1,27 +1,25 @@
 module forwarding_unit(
-    input  [4:0] EX_rs1, EX_rs2,    // Source registers from EX stage
-    input  [4:0] MEM_rd, WB_rd,     // Destination registers from later stages
-    input        MEM_RegWrite,      // MEM stage will write to register
-    input        WB_RegWrite,       // WB stage will write to register
-    output reg [1:0] forwardA, forwardB // Control signals for ALU operand muxes
+    input  [4:0] EX_rs1, EX_rs2,
+    input  [4:0] MEM_rd, WB_rd,
+    input        MEM_RegWrite,
+    input        WB_RegWrite,
+    output reg [1:0] forwardA,
+    output reg [1:0] forwardB
 );
 
     always @(*) begin
-        // Default: no forwarding
         forwardA = 2'b00;
         forwardB = 2'b00;
 
-        // Check forwarding for Operand A
         if (MEM_RegWrite && (MEM_rd != 0) && (MEM_rd == EX_rs1))
-            forwardA = 2'b01; // Forward from MEM stage
+            forwardA = 2'b01;
         else if (WB_RegWrite && (WB_rd != 0) && (WB_rd == EX_rs1))
-            forwardA = 2'b10; // Forward from WB stage
+            forwardA = 2'b10;
 
-        // Check forwarding for Operand B
         if (MEM_RegWrite && (MEM_rd != 0) && (MEM_rd == EX_rs2))
-            forwardB = 2'b01; // Forward from MEM stage
+            forwardB = 2'b01;
         else if (WB_RegWrite && (WB_rd != 0) && (WB_rd == EX_rs2))
-            forwardB = 2'b10; // Forward from WB stage
+            forwardB = 2'b10;
     end
 
 endmodule
