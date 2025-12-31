@@ -1,71 +1,46 @@
 module branch_control (
-    input wire [31:0] pc,           // Current PC from IF stage
-    input wire [31:0] imm,          // Immediate offset for branch/jump
-    input wire [31:0] rs1_data,     // Source register 1 data (for JALR)
-    input wire branch,              // Branch instruction flag
-    input wire jump,                // Jump instruction flag
-    input wire [2:0] funct3,        // Branch condition type
-    input wire zero_flag,           // ALU Zero flag (BEQ/BNE)
-    input wire less_than_flag,      // ALU less-than flag (BLT/BGE)
-    input wire greater_equal_flag,  // ALU greater-equal flag (BGE/BLT)
-    output reg branch_taken,        // Output: 1 if branch/jump taken
-    output reg [31:0] target_pc,    // Output: Target PC address
-    output reg flush                // Output: Flush pipeline if taken
+    input  wire [31:0] pc_curr,
+    input  wire [31:0] imm_val,
+    input  wire [31:0] rs1_val,
+    input  wire        is_branch,
+    input  wire        is_jump,
+    input  wire [2:0]  funct3,
+    input  wire        zero,
+    input  wire        less,
+    input  wire        greater_equal,
+    output reg         take_branch,
+    output reg  [31:0] next_pc,
+    output reg         flush_pipe
 );
 
     always @(*) begin
-        branch_taken = 0;
-        flush = 0;
-        target_pc = pc + 4; // Default: next sequential PC
+        take_branch = 1'b0;
+        flush_pipe  = 1'b0;
+        next_pc     = pc_curr + 32'd4;
 
-        // ===============================
-        // Branch Decision Logic
-        // ===============================
-        if (branch) begin
+        if (is_branch) begin
             case (funct3)
-                3'b000: begin // BEQ
-                    if (zero_flag) begin
-                        branch_taken = 1;
-                        target_pc = pc + imm;
-                    end
-                end
-                3'b001: begin // BNE
-                    if (!zero_flag) begin
-                        branch_taken = 1;
-                        target_pc = pc + imm;
-                    end
-                end
-                3'b100: begin // BLT
-                    if (less_than_flag) begin
-                        branch_taken = 1;
-                        target_pc = pc + imm;
-                    end
-                end
-                3'b101: begin // BGE
-                    if (greater_equal_flag) begin
-                        branch_taken = 1;
-                        target_pc = pc + imm;
-                    end
-                end
-                default: begin
-                    branch_taken = 0;
-                end
+                3'b000: if (zero)           take_branch = 1'b1;
+                3'b001: if (!zero)          take_branch = 1'b1;
+                3'b100: if (less)           take_branch = 1'b1;
+                3'b101: if (greater_equal)  take_branch = 1'b1;
+                default: take_branch = 1'b0;
             endcase
+
+            if (take_branch)
+                next_pc = pc_curr + imm_val;
         end
 
-        // Jump Decision Logic
-        if (jump) begin
-            branch_taken = 1;
-            if (funct3 == 3'b000) begin // JAL
-                target_pc = pc + imm;
-            end else begin // JALR
-                target_pc = (rs1_data + imm) & ~32'b1; // align to even address
-            end
+        if (is_jump) begin
+            take_branch = 1'b1;
+            if (funct3 == 3'b000)
+                next_pc = pc_curr + imm_val;
+            else
+                next_pc = (rs1_val + imm_val) & 32'hFFFFFFFE;
         end
 
-        // Flush Control
-        if (branch_taken) begin
-            flush = 1; // flush incorrect instructions
-        end
+        if (take_branch)
+            flush_pipe = 1'b1;
     end
+
 endmodule
